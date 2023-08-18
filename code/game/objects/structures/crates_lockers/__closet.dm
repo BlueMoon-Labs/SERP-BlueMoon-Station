@@ -46,7 +46,7 @@
 /obj/structure/closet/Initialize(mapload)
 	. = ..()
 	if(mapload && !opened)
-		addtimer(CALLBACK(src, .proc/take_contents), 0)
+		addtimer(CALLBACK(src, PROC_REF(take_contents)), 0)
 	PopulateContents()
 	/*
 	if(secure)
@@ -61,7 +61,7 @@
 	if(starts_with)
 		create_objects_in_loc(src, starts_with)
 		starts_with = null
-	if(ispath(closet_appearance))
+	if(!use_old_icon_update && ispath(closet_appearance))
 		var/singleton/closet_appearance/app = GET_SINGLETON(closet_appearance)
 		if(app)
 			icon = app.icon

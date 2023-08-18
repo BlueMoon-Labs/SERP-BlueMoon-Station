@@ -37,6 +37,7 @@
 	var/last_act = 0
 	var/overlay_detail
 
+	var/arch_icon = 'icons/turf/walls.dmi'
 	var/datum/geosample/geologic_data
 	var/excavation_level = 0
 	var/list/finds
@@ -256,9 +257,9 @@
 			. += appearance
 		*/
 		if(archaeo_overlay)
-			. += mutable_appearance(icon, archaeo_overlay)
+			. += mutable_appearance(arch_icon, archaeo_overlay)
 		if(excav_overlay)
-			. += mutable_appearance(icon, excav_overlay)
+			. += mutable_appearance(arch_icon, excav_overlay)
 
 	//We are a sand floor
 	else
@@ -283,9 +284,10 @@
 		spawn(1) // Otherwise most of the ore is lost to the explosion, which makes this rather moot.
 			for(var/ore in resources)
 				var/amount_to_give = rand(CEILING(resources[ore]/2, 1), resources[ore])  // Should result in at least one piece of ore.
-				for(var/i=1, i <= amount_to_give, i++)
-					var/oretype = GLOB.ore_types[ore]
-					new oretype(src)
+				if(GLOB.ore_types[ore])
+					for(var/i=1, i <= amount_to_give, i++)
+						var/oretype = GLOB.ore_types[ore]
+						new oretype(src)
 				resources[ore] = 0
 
 /turf/simulated/mineral/bullet_act(var/obj/projectile/Proj) // only emitters for now

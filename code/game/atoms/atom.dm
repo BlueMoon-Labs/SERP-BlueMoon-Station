@@ -5,6 +5,7 @@
  * as much as possible to the components/elements system
  */
 /atom
+	SET_APPEARANCE_FLAGS(TILE_MOVER)
 	layer = TURF_LAYER
 
 	//? Core
@@ -183,7 +184,7 @@
  */
 /atom/New(loc, ...)
 	//atom creation method that preloads variables at creation
-	if(GLOB.use_preloader && (src.type == GLOB._preloader.target_path))//in case the instanciated atom is creating other atoms in New()
+	if(global.use_preloader && (src.type == global.preloader.target_path))//in case the instanciated atom is creating other atoms in New()
 		world.preloader_load(src)
 
 	if(datum_flags & DF_USE_TAG)
@@ -799,7 +800,7 @@
 		M.show_message(msg, 2, deaf_message, 1)
 		heard_to_floating_message += M
 	if(!no_runechat)
-		INVOKE_ASYNC(src, /atom/movable/proc/animate_chat, (message ? message : deaf_message), null, FALSE, heard_to_floating_message, 30)
+		INVOKE_ASYNC(src, TYPE_PROC_REF(/atom/movable, animate_chat), (message ? message : deaf_message), null, FALSE, heard_to_floating_message, 30)
 
 /atom/movable/proc/dropInto(var/atom/destination)
 	while(istype(destination))
@@ -950,7 +951,7 @@
 
 /atom/proc/update_filters()
 	filters = null
-	filter_data = tim_sort(filter_data, /proc/cmp_filter_data_priority, TRUE)
+	filter_data = tim_sort(filter_data, GLOBAL_PROC_REF(cmp_filter_data_priority), TRUE)
 	for(var/f in filter_data)
 		var/list/data = filter_data[f]
 		var/list/arguments = data.Copy()

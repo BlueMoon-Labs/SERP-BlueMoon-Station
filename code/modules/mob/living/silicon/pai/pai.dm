@@ -61,9 +61,8 @@
 		"Fox" = "pai-fox",
 		"Parrot" = "pai-parrot",
 		"Rabbit" = "pai-rabbit",
-		"Bear" = "pai-bear",
 		"Fennec" = "pai-fen",
-		"Fennec" = "pai-typezero",
+		"Bear" = "pai-bear"
 		)
 
 	var/global/list/possible_say_verbs = list(
@@ -76,11 +75,6 @@
 		)
 
 	// shell transformation
-	var/global/list/possible_clothing_options = list(
-		"Maid Costume" = /obj/item/clothing/under/dress/maid/sexy,
-		"Grey Pleated Skirt" = /obj/item/clothing/under/color/grey_skirt,
-		"Last Uploaded Clothing" = null,
-		)
 	var/obj/item/clothing/last_uploaded_path
 	var/obj/item/clothing/base_uploaded_path
 	var/uploaded_snowflake_worn_state
@@ -120,6 +114,8 @@
 	// transformation component
 	var/datum/component/object_transform/transform_component
 
+	var/icon/last_rendered_hologram_icon
+
 /mob/living/silicon/pai/Initialize(mapload)
 	. = ..()
 	shell = loc
@@ -135,6 +131,7 @@
 
 	add_verb(src, /mob/living/silicon/pai/proc/choose_chassis)
 	add_verb(src, /mob/living/silicon/pai/proc/choose_verbs)
+	add_verb(src, /mob/living/proc/set_size)
 
 	//PDA
 	pda = new(src)
@@ -171,7 +168,7 @@
 	// Resting is just an aesthetic feature for them.
 	return ..(movable, be_close, no_dexterity, no_tk)
 
-/mob/living/silicon/pai/update_icon()
+/mob/living/silicon/pai/update_icon(animate = TRUE)
 	..()
 	update_fullness_pai()
 	if(!people_eaten && !resting)
@@ -182,6 +179,8 @@
 		icon_state = "[chassis]_full"
 	else if(people_eaten && resting)
 		icon_state = "[chassis]_rest_full"
+	if(resting)
+		update_transform(animate) // because when our chassis changes we dont want to stay rotated because only holograms rotate!!
 
 /// camera handling
 /mob/living/silicon/pai/check_eye(var/mob/user as mob)
@@ -225,6 +224,12 @@
 	else
 		transform_component.to_object_text = "neatly folds inwards, compacting down into their shell"
 
+	// if our shell is clothing, drop any accessories first
+	if(istype(shell, /obj/item/clothing))
+		var/obj/item/clothing/C = shell
+		for(var/obj/item/clothing/accessory/A in C.accessories)
+			C.remove_accessory(null, A)
+
 	// swap the shell, if the old shell is our card we keep it, otherwise we delete it because it's not important
 	shell = new_shell
 	var/obj/item/old_shell = transform_component.swap_object(new_shell)
@@ -243,18 +248,27 @@
 
 	// pass attack self on to the card regardless of our shell
 	if(!istype(new_shell, /obj/item/paicard))
-		RegisterSignal(shell, COMSIG_ITEM_ATTACK_SELF, .proc/pass_attack_self_to_card)
+		RegisterSignal(shell, COMSIG_ITEM_ATTACK_SELF, PROC_REF(pass_attack_self_to_card))
 
 // changing the shell into clothing
-/mob/living/silicon/pai/proc/change_shell_by_path(object_path)
+/mob/living/silicon/pai/proc/change_shell_by_path(obj/item/clothing/object_path)
 	if(!can_change_shell())
 		return FALSE
 
 	last_special = world.time + 20
 
-	var/obj/item/new_object = new object_path
+	var/obj/item/clothing/base_clothing_path = get_base_clothing_path(object_path)
+	var/obj/item/new_object = new base_clothing_path
 	new_object.name = "[src.name] (pAI)"
 	new_object.desc = src.desc
+	new_object.icon = initial(object_path.icon)
+	new_object.icon_state = initial(object_path.icon_state)
+	if(istype(new_object, /obj/item/clothing/under))
+		var/obj/item/clothing/under/U = new_object
+		var/obj/item/clothing/under/under_path = object_path
+		U.snowflake_worn_state = initial(under_path.snowflake_worn_state)
+		if(!length(U.snowflake_worn_state))
+			U.snowflake_worn_state = U.icon_state
 	new_object.forceMove(src.loc)
 	switch_shell(new_object)
 	return TRUE
@@ -262,3 +276,19 @@
 /mob/living/silicon/pai/proc/pass_attack_self_to_card()
 	if(istype(shell.loc, /mob/living/carbon))
 		card.attack_self(shell.loc)
+
+/mob/living/silicon/pai/proc/get_base_clothing_path(obj/item/clothing/path)
+	if(initial(path.slot_flags) & SLOT_HEAD)
+		return /obj/item/clothing/head
+	if(initial(path.slot_flags) & SLOT_ICLOTHING)
+		return /obj/item/clothing/under
+	if(initial(path.slot_flags) & SLOT_EYES)
+		return /obj/item/clothing/glasses
+	if(initial(path.slot_flags) & SLOT_GLOVES)
+		return /obj/item/clothing/gloves
+	if(initial(path.slot_flags) & SLOT_MASK)
+		return /obj/item/clothing/mask
+	if(initial(path.slot_flags) & SLOT_FEET)
+		return /obj/item/clothing/shoes
+	if(initial(path.slot_flags) & SLOT_OCLOTHING)
+		return /obj/item/clothing/suit
